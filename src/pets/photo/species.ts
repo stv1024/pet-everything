@@ -222,7 +222,7 @@ export const tiger: PhotoDef = {
     nose: { x: 105, y: 150 },
     neck: { x: 330, y: 155 },
     spine: 160,
-    skull: [260, 380],
+    skull: [300, 420],
     head: { x: [250, 400], half: [100, 160] },
     chest: { x: 430, rx: 200, ry: 160 },
     ears: [
@@ -230,6 +230,12 @@ export const tiger: PhotoDef = {
       { base: { x: 245, y: 180 }, c: { x: 228, y: 198 } },
     ],
     tail: tigerTail,
+    // 两只前爪平放在地上，基本不动；头很重，摸头时只轻微移动
+    fixed: [
+      { x: 70, y: 122, rx: 75, ry: 42 },
+      { x: 70, y: 225, rx: 75, ry: 45 },
+    ],
+    headFix: 0.8,
   },
   scale: 2.8,
   ground: 'grass',

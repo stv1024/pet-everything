@@ -46,6 +46,10 @@ export interface Rig {
   ears?: { base: P; c: P }[];
   /** 尾巴折线（毛流先验沿尾巴） */
   tail?: [number, number][];
+  /** 几乎不动的区域（椭圆）：例如平放在地上的前爪。手拖不动，也不跟着头歪 */
+  fixed?: { x: number; y: number; rx: number; ry: number }[];
+  /** 头部固定程度 0..1：越大，头被手拖动和压歪得越少（大型动物的头很重） */
+  headFix?: number;
 }
 
 export interface Temper {
@@ -237,9 +241,12 @@ export class PhotoPet implements Creature {
       const x = skin.ix[i],
         y = skin.iy[i];
       const skull = 1 - ss(r.skull[0], r.skull[1], x);
-      travel[i] = 1 - 0.34 * skull;
-      this.wHead[i] = (1 - ss(r.head.x[0], r.head.x[1], x)) * (1 - ss(r.head.half[0], r.head.half[1], Math.abs(y - r.spine)));
-      this.wChest[i] = Math.exp(-(((x - r.chest.x) / r.chest.rx) ** 2) - ((y - r.spine) / r.chest.ry) ** 2);
+      // 固定区域：中心完全不动，边缘平滑过渡
+      let fix = 0;
+      for (const e of r.fixed ?? []) fix = Math.max(fix, 1 - ss(0.75, 1.35, Math.hypot((x - e.x) / e.rx, (y - e.y) / e.ry)));
+      travel[i] = (1 - (0.34 + 0.6 * (r.headFix ?? 0)) * skull) * (1 - 0.92 * fix);
+      this.wHead[i] = (1 - ss(r.head.x[0], r.head.x[1], x)) * (1 - ss(r.head.half[0], r.head.half[1], Math.abs(y - r.spine))) * (1 - fix);
+      this.wChest[i] = Math.exp(-(((x - r.chest.x) / r.chest.rx) ** 2) - ((y - r.spine) / r.chest.ry) ** 2) * (1 - fix);
       (r.ears ?? []).forEach((e, k) => (this.wEar[k][i] = Math.exp(-(((x - e.c.x) / 53) ** 2) - ((y - e.c.y) / 55) ** 2)));
       skin.furSmooth(x, y, f);
       furX[i] = f[0];
@@ -551,11 +558,12 @@ export class PhotoPet implements Creature {
     // 头：压在头上时往按的一侧轻轻歪，并随拖动略转
     const px = press.x * U,
       py = press.y * U;
-    const ang = 0.044 * press.head * clamp((py - r.spine) / (0.064 * U), -1, 1) + press.shoulderY * 1.09 + 0.004 * breath;
+    const hold = 1 - 0.75 * (r.headFix ?? 0);
+    const ang = (0.044 * press.head * clamp((py - r.spine) / (0.064 * U), -1, 1) + press.shoulderY * 1.09) * hold + 0.004 * breath;
     const hc = Math.cos(ang) - 1,
       hs = Math.sin(ang);
-    const hpx = 0.0015 * U * press.head,
-      hpy = 0.0009 * U * press.head;
+    const hpx = 0.0015 * U * press.head * hold,
+      hpy = 0.0009 * U * press.head * hold;
     // 耳朵：手压在耳朵附近时向后压平（上耳顺时针，下耳逆时针）
     const ears = (r.ears ?? []).map(e => {
       const near = Math.exp(-(((px - e.c.x) / (0.067 * U)) ** 2) - ((py - e.c.y) / (0.1 * U)) ** 2);
