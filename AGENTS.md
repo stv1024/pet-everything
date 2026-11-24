@@ -13,6 +13,12 @@
 
 Avoid unnecessary secondary labels and descriptions. Let the layout do the explaining.
 
+## 项目概览
+
+"万物皆可撸"（Pet Everything）：俯视视角撸各种动物的网页小玩具。Vite + TypeScript，无 UI 框架；声音全部用 Web Audio 实时合成。开发服务器 `npx vite`（端口 5188）；给人用的一键入口是根目录的 `打开游戏.bat`（改它要保持 GBK + CRLF，见 `tools/check-launchers.mjs`）。画风为写实：AI 生图素材 + WebGL 网格形变，素材制作见 [写实素材管线](docs/写实素材管线.md)；引擎零件和调试工具见 [物种开发指南](docs/物种开发指南.md)。
+
+仓库已开源（MIT），所有提交都是公开的：不要提交 Key、内部接口地址、计费数据。这类配置写在 `.env.local`（不入库）。发布用 `npm run deploy`（自定义域名，带作者链接）和 `npm run deploy:anon`（Cloudflare Pages 临时地址，不带作者链接），见 `tools/deploy.mjs`。
+
 ## 浏览器自动化建议
 
 涉及浏览器自动化时，通常建议复用项目已有的启动工具。Windows 上可优先评估配套 Headless Shell，以减少已知的账户验证问题；macOS/Linux 可按测试需求选择浏览器，无需为该 Windows 问题改变方案。适用范围与接入方式见 [浏览器自动化建议](docs/浏览器自动化建议.md)，项目可根据兼容性和实测结果自主调整。

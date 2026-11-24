@@ -1,0 +1,5 @@
+{
+  "prompt": "Photorealistic overhead photograph, camera pointing straight down (true top-down view, 90 degrees), of a real round golden barrel cactus (Echinocactus grusonii) planted in a round terracotta flower pot, seen exactly from above and centred in the frame.\nThe cactus is a fat green ball with many deep vertical ribs radiating from the woolly pale-yellow crown at the centre, each rib lined with clusters of long stiff golden-yellow spines; the orange terracotta pot rim forms a thin ring visible around the cactus with a little dark soil between.\nThe pot fills about 75 percent of the image width.\nBackground: perfectly flat, uniform, solid pure magenta (#FF00FF) chroma-key colour with no texture, no floor, no shadow, no gradient, no props.\nSoft even diffuse studio light from the top-left, natural colours, highly detailed, sharp focus everywhere, no motion blur, no text, no watermark.",
+  "refs": [],
+  "model": "tencent-vod/gpt-image-2.6"
+}

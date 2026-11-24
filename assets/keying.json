@@ -1,0 +1,14 @@
+{
+  "说明": "抠图清单：node tools/key-all.mjs [名字过滤]。raw 在 assets/raw/，out 在 public/pets/。同一物种的毛色共用 crop，坐标才一致。key=magenta 为品红幕。",
+  "groups": [
+    { "crop": "4,268,1020,526", "items": { "cat2-orange": "cat/orange", "cat2-black": "cat/black", "cat2-calico": "cat/calico", "cat2-tuxedo": "cat/tuxedo", "cat2-white": "cat/white", "cat2-gray": "cat/gray" } },
+    { "pad": 8, "choke": 0.45, "items": { "hand-open": "hand-open" } },
+    { "crop": "15,315,993,395", "items": { "dog-base": "dog/shiba", "dog-coat-blacktan": "dog/blacktan", "dog-coat-cream": "dog/cream", "dog-coat-sesame": "dog/sesame" } },
+    { "crop": "15,280,1004,493", "items": { "rabbit-base": "rabbit/chestnut", "rabbit-coat-white": "rabbit/white", "rabbit-coat-black": "rabbit/black", "rabbit-coat-broken": "rabbit/broken", "rabbit-coat-gray": "rabbit/gray" } },
+    { "crop": "33,244,959,545", "items": { "hedgehog-base": "hedgehog/pepper", "hedgehog-coat-albino": "hedgehog/albino", "hedgehog-coat-cinnamon": "hedgehog/cinnamon" } },
+    { "crop": "12,328,996,426", "items": { "tiger-base": "tiger/bengal", "tiger-coat-white": "tiger/white", "tiger-coat-golden": "tiger/golden" } },
+    { "crop": "5,335,1013,361", "key": "magenta", "items": { "crocodile-base": "crocodile/nile" } },
+    { "crop": "5,224,1019,583", "items": { "orca-base": "orca/wild" } },
+    { "crop": "30,16,946,991", "key": "magenta", "items": { "cactus-base": "cactus/golden", "cactus-coat-flower": "cactus/flower" } }
+  ]
+}

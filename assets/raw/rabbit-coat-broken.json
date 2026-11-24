@@ -1,0 +1,7 @@
+{
+  "prompt": "Keep EXACTLY the same photo: identical camera angle (straight top-down), identical pose, body shape, head position, ear positions, tail position and framing, identical lighting and the identical flat solid chroma-key background colour. Only change the fur of the rabbit to: a broken orange Holland Lop, white fur with large irregular warm orange patches on the back and an orange head with orange ears. Photorealistic, highly detailed.",
+  "refs": [
+    "assets/raw/rabbit-base.png"
+  ],
+  "model": "tencent-vod/gpt-image-2.6"
+}

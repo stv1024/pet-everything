@@ -1,0 +1,7 @@
+{
+  "prompt": "Keep EXACTLY the same photo: identical camera angle (straight top-down), identical pose, body shape, head position, ear positions, tail position and framing, identical lighting and the identical flat solid chroma-key background colour. Only change the colour of the hedgehog to: an albino African pygmy hedgehog with pure white spines, white face, pink nose skin and pink ears, dark ruby-red eyes. Photorealistic, highly detailed.",
+  "refs": [
+    "assets/raw/hedgehog-base.png"
+  ],
+  "model": "tencent-vod/gpt-image-2.6"
+}

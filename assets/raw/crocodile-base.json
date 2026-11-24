@@ -1,0 +1,5 @@
+{
+  "prompt": "Photorealistic overhead photograph, camera pointing straight down (true top-down view, 90 degrees), of a real Nile crocodile lying flat on its belly, completely relaxed, body stretched horizontally across the frame.\nHead and long snout on the LEFT side of the image, mouth closed, the eyes and nostrils on top of the head visible, the armoured back with rows of bony scutes facing the camera, the four short legs splayed out to the sides with the clawed feet flat on the floor, the long muscular tail extends to the RIGHT in a gentle S curve.\nThe whole crocodile fits inside the frame with margin and spans about 92 percent of the image width.\nBackground: perfectly flat, uniform, solid pure magenta (#FF00FF) chroma-key colour with no texture, no floor, no shadow, no gradient, no props.\nSoft even diffuse studio light from the top-left, natural colours, highly detailed, sharp focus everywhere, no motion blur, no text, no watermark.",
+  "refs": [],
+  "model": "tencent-vod/gpt-image-2.6"
+}

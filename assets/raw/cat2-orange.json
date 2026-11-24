@@ -1,0 +1,5 @@
+{
+  "prompt": "Photorealistic overhead photograph, camera pointing straight down (true top-down view, 90 degrees), of a real orange tabby domestic cat lying flat on its belly in a relaxed sphinx loaf pose, body stretched horizontally across the frame.\nHead on the LEFT side of the image, nose pointing left, both ears visible on top of the head, front paws tucked under the chest, back and spine facing the camera, the tail extends out behind the cat to the RIGHT and rests on the floor in a long gentle curve that bends downward, clearly separated from the body and touching the body only at its base (the tail is NOT wrapped around the body).\nThe whole cat fits inside the frame with generous margin and spans about 90 percent of the image width including the tail.\nBackground: perfectly flat, uniform, solid pure chroma-key green (#00FF00) with no texture, no floor, no shadow, no gradient, no props.\nSoft even diffuse studio light from the top-left, natural fur colours, highly detailed individual fur strands, sharp focus everywhere, no motion blur, no text, no watermark.",
+  "refs": [],
+  "model": "tencent-vod/gpt-image-2.6"
+}

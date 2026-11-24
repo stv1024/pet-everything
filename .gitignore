@@ -2,3 +2,6 @@ paseo.json
 node_modules/
 dist/
 .tmp/
+.claude/worktrees/
+.env.local
+dist-anon/

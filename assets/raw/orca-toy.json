@@ -1,0 +1,5 @@
+{
+  "prompt": "Photorealistic overhead photograph, camera pointing straight down (true top-down view, 90 degrees), of a young orca (killer whale) calf seen from directly above as if floating flat at the surface, body horizontal across the frame, isolated as a cut-out.\nHead on the LEFT side of the image, the rounded black head and the blowhole on top, the white eye patches visible on both sides of the head, the glossy smooth wet black back with the grey saddle patch behind the dorsal fin, the dorsal fin seen from above as a short dark ridge, the two paddle-shaped pectoral flippers spread out to the sides, the tail flukes spread flat on the RIGHT.\nThe whole orca fits inside the frame with margin and spans about 90 percent of the image width.\nBackground: perfectly flat, uniform, solid pure chroma-key green (#00FF00) with no texture, no floor, no water, no shadow, no gradient, no props.\nSoft even diffuse studio light from the top-left, natural colours, highly detailed, sharp focus everywhere, no motion blur, no text, no watermark.",
+  "refs": [],
+  "model": "tencent-vod/gpt-image-2.6"
+}

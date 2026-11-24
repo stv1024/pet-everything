@@ -1,0 +1,5 @@
+{
+  "prompt": "Photorealistic overhead photograph, camera pointing straight down (true top-down view, 90 degrees), of a real African pygmy hedgehog lying flat and relaxed on its belly, body horizontal across the frame, seen from above.\nHead on the LEFT side of the image: the small pointed snout with a black nose and the face poking out on the left, small rounded ears, the oval back fully covered with dense cream-and-brown banded spines that all point backwards to the right, little feet hidden under the body.\nThe whole hedgehog fits inside the frame with generous margin and spans about 80 percent of the image width.\nBackground: perfectly flat, uniform, solid pure chroma-key green (#00FF00) with no texture, no floor, no water, no shadow, no gradient, no props.\nSoft even diffuse studio light from the top-left, natural colours, highly detailed, sharp focus everywhere, no motion blur, no text, no watermark.",
+  "refs": [],
+  "model": "tencent-vod/gpt-image-2.6"
+}

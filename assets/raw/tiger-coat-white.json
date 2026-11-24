@@ -1,0 +1,7 @@
+{
+  "prompt": "Keep EXACTLY the same photo: identical camera angle (straight top-down), identical pose, body shape, head position, ear positions, tail position and framing, identical lighting and the identical flat solid chroma-key background colour. Only change the coat of the tiger to: a white Bengal tiger with creamy white fur and dark grey-brown stripes in the same places, pale ice-blue tint in the shadows. Photorealistic, highly detailed.",
+  "refs": [
+    "assets/raw/tiger-base.png"
+  ],
+  "model": "tencent-vod/gpt-image-2.6"
+}
