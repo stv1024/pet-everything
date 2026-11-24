@@ -101,3 +101,42 @@ export function smear(g: CanvasRenderingContext2D, x0: number, y0: number, x1: n
   }
   g.restore();
 }
+
+/**
+ * 滴到地面（地毯、沙地）上的血：预先画成小贴图，绘制时用 multiply 叠到地面上，
+ * 让地面的纹理透出来，像血渗进了织物。px 为每世界单位的像素数，r 为半径（世界单位）。
+ * 返回的画布中心就是落点，边长为 size 世界单位。
+ */
+export function groundSplat(r: number, px = 6): { canvas: HTMLCanvasElement; size: number } {
+  const size = r * 6;
+  const c = document.createElement('canvas');
+  c.width = c.height = Math.ceil(size * px);
+  const g = c.getContext('2d')!;
+  g.scale(px, px);
+  const x = size / 2,
+    y = size / 2;
+  // 从手上滴下来：落点外围有几粒溅开的小血点
+  const n = 3 + Math.floor(Math.random() * 6);
+  for (let i = 0; i < n; i++) {
+    const a = Math.random() * Math.PI * 2,
+      d = r * rnd(1.25, 2.6);
+    blob(g, x + Math.cos(a) * d, y + Math.sin(a) * d, r * rnd(0.06, 0.2), 0.35);
+    g.fillStyle = `rgba(120,20,28,${rnd(0.6, 0.9).toFixed(2)})`;
+    g.fill();
+  }
+  // 渗开的部分：沿纤维吸开，浅、边缘毛糙
+  for (let i = 0; i < 5; i++) {
+    blob(g, x + rnd(-0.25, 0.25) * r, y + rnd(-0.25, 0.25) * r, r * rnd(1.05, 1.35), 0.5);
+    g.fillStyle = 'rgba(150,45,45,0.3)';
+    g.fill();
+  }
+  // 主体：中间深，边缘一圈更深（干得快）
+  blob(g, x, y, r, 0.18);
+  const body = g.createRadialGradient(x, y, 0, x, y, r);
+  body.addColorStop(0, 'rgba(120,14,22,0.92)');
+  body.addColorStop(0.75, 'rgba(105,10,18,0.95)');
+  body.addColorStop(1, 'rgba(70,4,10,0.97)');
+  g.fillStyle = body;
+  g.fill();
+  return { canvas: c, size };
+}

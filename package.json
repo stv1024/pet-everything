@@ -2,7 +2,7 @@
   "name": "pet-everything",
   "private": true,
   "version": "0.1.0",
-  "description": "万物皆可撸：俯视视角撸各种写实动物的网页小玩具",
+  "description": "Pet photorealistic animals from a top-down view — a web toy (cat, dog, rabbit, hedgehog, tiger, crocodile, orca, cactus)",
   "license": "MIT",
   "homepage": "https://pet-everything.stv1024.asia",
   "repository": {

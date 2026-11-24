@@ -7,7 +7,7 @@ import { TAU, clamp, follow, smooth } from '../../engine/math';
 import { PressInput, SkinPress } from '../../engine/skinPress';
 import { Mood, speedLike } from '../kit';
 import { Contact, Creature, Frame, Fx, Species, View } from '../types';
-import { drop, smear } from './blood';
+import { drop, groundSplat, smear } from './blood';
 import { Ground, GroundKind } from './grounds';
 
 /**
@@ -142,6 +142,7 @@ const PADS = [
 const base = import.meta.env.BASE_URL;
 const handImage = loadImage(`${base}pets/hand-open.webp`);
 const ss = (a: number, b: number, x: number) => smooth((x - a) / (b - a));
+const rnd = (a: number, b: number) => a + Math.random() * (b - a);
 
 export class PhotoPet implements Creature {
   frame: Bounds;
@@ -176,6 +177,10 @@ export class PhotoPet implements Creature {
   private pads: { x: number; y: number; cover: number }[] = [];
   /** 刚被扎破的手指：几秒内拖过的地方会留下血痕 */
   private bloody = { pads: [] as number[], last: [] as { x: number; y: number; ink: number }[] };
+  /** 手被扎破后还在流血的程度（1 → 0，约 15 秒止住），以及哪几个接触点（PADS 下标）在流血 */
+  private bleeding = { level: 0, pads: [] as number[], next: 0 };
+  /** 滴在地面上的血（世界坐标） */
+  private drips: { x: number; y: number; img: ImageBitmap | null; size: number; rot: number; age: number }[] = [];
 
   constructor(
     protected fx: Fx,
@@ -364,6 +369,7 @@ export class PhotoPet implements Creature {
     this.spikes(f, touching, zone);
     this.press.step(dt, this.contactInput(f));
     this.smearBlood(touching);
+    this.drip(f);
     this.pose();
     const c = this.contact;
     if (this.def.fur !== false) this.skin.stroke(dt, { ...f.touch, active: f.touch.active && c.on }, c.x, c.y, h.vx / this.k, h.vy / this.k, (46 * HAND_SIZE) / this.k);
@@ -420,6 +426,8 @@ export class PhotoPet implements Creature {
       skin.paintStain(g => drop(g, x, y, r), x - r * 2.6, y - r * 2.6, x + r * 2.6, y + r * 2.6);
     }
     this.bloody = { pads: picked, last: picked.map(i => ({ x: this.pads[i].x, y: this.pads[i].y, ink: 1 })) };
+    const wounds = picked.length ? picked : [1 + Math.floor(Math.random() * 4)];
+    this.bleeding = { level: Math.min(1, this.bleeding.level + 0.6), pads: [...new Set([...this.bleeding.pads, ...wounds])].slice(-4), next: Math.min(this.bleeding.next, 0.4) };
   }
 
   /** 带血的手指继续摸：留下断续、逐渐变淡的血痕。每根手指的血约拖 70 世界单位就蹭光了。 */
@@ -446,6 +454,32 @@ export class PhotoPet implements Creature {
       q.y = p.y;
     });
     if (b.last.every(q => q.ink <= 0)) b.pads = [];
+  }
+
+  /** 流血的手悬在地面上方时，不时有血滴落到地面上（落在伤口正下方）。 */
+  private drip(f: Frame): void {
+    const b = this.bleeding,
+      dt = f.dt;
+    for (const d of this.drips) d.age += dt;
+    if (b.level <= 0) return;
+    b.level = Math.max(0, b.level - dt / 15);
+    b.next -= dt;
+    if (b.next > 0) return;
+    // 越来越少：刚扎破时约半秒一滴，快止住时几秒一滴
+    b.next = rnd(0.35, 1.1) / Math.max(0.15, b.level);
+    if (!f.hand.present || f.contact) return;
+    const hand = this.fx.hand;
+    const pad = PADS[b.pads[Math.floor(Math.random() * b.pads.length)] ?? 0];
+    const w = hand.photoPoint(pad.x + rnd(-18, 18), pad.y + rnd(-18, 18));
+    // 也不滴在动物/物品身上（这里只管地面）
+    if (this.hit(w.x, w.y)) return;
+    const r = rnd(5, 9) * (0.6 + 0.4 * b.level);
+    const sp = groundSplat(r);
+    // 小画布在 Chrome 里是软件渲染，每帧画都要重新上传 GPU，会掉帧；转成 ImageBitmap 只上传一次
+    const d = { x: w.x, y: w.y, img: null as ImageBitmap | null, size: sp.size, rot: Math.random() * Math.PI * 2, age: 0 };
+    void createImageBitmap(sp.canvas).then(bmp => (d.img = bmp));
+    this.drips.push(d);
+    if (this.drips.length > 150) this.drips.shift()?.img?.close();
   }
 
   /** 由照片手的指腹位置算出接触斑（图片像素）。 */
@@ -558,6 +592,23 @@ export class PhotoPet implements Creature {
 
   background(g: CanvasRenderingContext2D, v: View): void {
     this.ground.draw(g, v);
+  }
+
+  /** 滴在地面上的血：画在污渍层，浏览器用 multiply 叠到地面上，地面纹理会透出来。刚落下时从小变大。 */
+  drawStains(g: CanvasRenderingContext2D): boolean {
+    let any = false;
+    for (const d of this.drips) {
+      if (!d.img) continue;
+      const k = d.age < 0.12 ? 0.55 + 0.45 * (d.age / 0.12) : 1;
+      const s = d.size * k;
+      g.save();
+      g.translate(d.x, d.y);
+      g.rotate(d.rot);
+      g.drawImage(d.img, -s / 2, -s / 2, s, s);
+      g.restore();
+      any = true;
+    }
+    return any;
   }
 
   draw(_g: CanvasRenderingContext2D, v: View): void {

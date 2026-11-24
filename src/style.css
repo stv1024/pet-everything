@@ -50,6 +50,9 @@ body {
   height: 100%;
   pointer-events: none;
 }
+#stage > canvas.stain-layer {
+  mix-blend-mode: multiply;
+}
 
 .corner {
   position: absolute;

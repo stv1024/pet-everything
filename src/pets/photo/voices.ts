@@ -184,11 +184,15 @@ const hedgehog = {
     for (let i = 0; i < n; i++)
       noise(au, { filter: 'bandpass', f: [[0, rnd(2600, 3400)]], q: 2, gain: 0.07, a: 0.01, h: 0.02, r: 0.05, delay: i * rnd(0.09, 0.13) });
   },
-  /** 喷气"噗噗"（不满、被扎时） */
+  /**
+   * 喷气（不满、被扎时）：刺猬用鼻子短促地"噗"，只有气流声，没有音高。
+   * 以前叠了方波，听起来像电子音"嘟嘟嘟"，已去掉。
+   */
   huff(au: AudioEngine, n = 2): void {
     for (let i = 0; i < n; i++) {
-      noise(au, { kind: 'pink', filter: 'bandpass', f: [[0, 1600], [0.1, 900]], q: 0.9, gain: 0.22, a: 0.004, h: 0.03, r: 0.09, delay: i * 0.16 });
-      tone(au, { type: 'square', f: [[0, 220], [0.05, 120]], gain: 0.05, a: 0.002, h: 0.01, r: 0.05, lowpass: 900, delay: i * 0.16 });
+      const d = i * rnd(0.13, 0.19);
+      noise(au, { kind: 'pink', filter: 'bandpass', f: [[0, rnd(2200, 2800)], [0.07, 1200]], q: 0.7, gain: 0.13, a: 0.003, h: 0.015, r: 0.07, delay: d });
+      noise(au, { filter: 'highpass', f: [[0, 3500]], gain: 0.05, a: 0.002, h: 0.01, r: 0.04, delay: d });
     }
   },
   /** 开心时的小哼唧 */
@@ -211,11 +215,10 @@ const hedgehog = {
 
 export const hedgehogSounds: PetVoice = {
   greet: au => hedgehog.sniff(au),
-  tap: au => hedgehog.huff(au, 1),
   happy: au => (Math.random() < 0.5 ? hedgehog.squeak(au) : hedgehog.sniff(au, 4)),
-  grumble: au => hedgehog.huff(au, 2),
-  angry: au => hedgehog.huff(au, 4),
-  prickled: au => hedgehog.huff(au, 2),
+  grumble: au => hedgehog.huff(au, 1),
+  angry: au => hedgehog.huff(au, 2),
+  prickled: au => hedgehog.huff(au, 1),
 };
 
 // ---------- 老虎 ----------

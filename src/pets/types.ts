@@ -107,6 +107,8 @@ export interface Creature {
   hit(x: number, y: number): Contact | null;
   update(f: Frame): void;
   background(g: CanvasRenderingContext2D, v: View): void;
+  /** 地面上的污渍（血滴等），画在单独一层，浏览器用 multiply 叠到背景上。返回是否画了东西 */
+  drawStains?(g: CanvasRenderingContext2D, v: View): boolean;
   draw(g: CanvasRenderingContext2D, v: View): void;
   /** 画在手上面的东西（例如抓住手的爪子、合上的嘴） */
   drawOver?(g: CanvasRenderingContext2D, v: View): void;

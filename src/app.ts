@@ -42,6 +42,10 @@ export class App {
   /** 背景层（2D）；中间是 GL 层；前景层（2D）画手和粒子 */
   private g: CanvasRenderingContext2D;
   private top: HTMLCanvasElement;
+  /** 地面污渍层（2D，CSS multiply 叠在背景上，在动物下面）。背景画布上直接 drawImage 会走慢路径掉帧 */
+  private stain: HTMLCanvasElement;
+  private gs: CanvasRenderingContext2D;
+  private stainUsed = false;
   private gt: CanvasRenderingContext2D;
   private gl: GLLayer;
   private contactSound: ContactSound | null = null;
@@ -69,7 +73,11 @@ export class App {
     this.gl = GLLayer.get();
     this.top = document.createElement('canvas');
     this.top.setAttribute('aria-hidden', 'true');
-    canvas.after(this.gl.canvas, this.top);
+    this.stain = document.createElement('canvas');
+    this.stain.setAttribute('aria-hidden', 'true');
+    this.stain.className = 'stain-layer';
+    this.gs = this.stain.getContext('2d')!;
+    canvas.after(this.stain, this.gl.canvas, this.top);
     this.gt = this.top.getContext('2d')!;
     this.fx = {
       au: this.au,
@@ -122,7 +130,7 @@ export class App {
     const dpr = Math.min(window.devicePixelRatio || 1, 2.5);
     const w = Math.max(1, Math.round(r.width * dpr)),
       h = Math.max(1, Math.round(r.height * dpr));
-    for (const cv of [this.canvas, this.top])
+    for (const cv of [this.canvas, this.stain, this.top])
       if (cv.width !== w || cv.height !== h) {
         cv.width = w;
         cv.height = h;
@@ -389,6 +397,13 @@ export class App {
     if (!c) return;
     applyCamera(g, v);
     c.background(g, v);
+    const gs = this.gs;
+    if (c.drawStains || this.stainUsed) {
+      gs.setTransform(1, 0, 0, 1, 0, 0);
+      gs.clearRect(0, 0, this.stain.width, this.stain.height);
+      applyCamera(gs, v);
+      this.stainUsed = c.drawStains?.(gs, v) ?? false;
+    }
     const gl = this.gl,
       wasGL = gl.used;
     gl.used = false;
