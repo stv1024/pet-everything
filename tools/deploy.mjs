@@ -26,6 +26,11 @@ if (which === 'main') {
   run('npx vite build --mode anon --outDir dist-anon --emptyOutDir');
   const leaked = execSync('git grep -n -I -e stv1024 -e github.com -e x.com --no-index -- dist-anon || true').toString().trim();
   if (leaked) throw new Error(`anon 版里还有作者信息：\n${leaked}`);
+  // Pages 项目要事先存在。不要用 `wrangler pages project create`：新版 wrangler 会把它改道成部署 Worker，
+  // 读的是本仓库 wrangler.jsonc（同名 pet-everything），等于把主站重新发布一遍。
+  // 需要新建时用 Cloudflare API：POST /accounts/<账号 ID>/pages/projects {"name": "...", "production_branch": "main"}
+  const list = execSync('npx wrangler pages project list').toString();
+  if (!list.includes(`│ ${project} `)) throw new Error(`Pages 项目 ${project} 不存在，请先用 Cloudflare API 或控制台创建（见本文件注释）`);
   run(`npx wrangler pages deploy dist-anon --project-name ${project} --branch main --commit-dirty=true`);
 } else {
   console.log('用法：node tools/deploy.mjs main|anon');
