@@ -1,7 +1,8 @@
 import { AudioEngine, Material } from '../../audio/engine';
-import { Bed } from '../../audio/synth';
+import { Bed, noise } from '../../audio/synth';
 import { GLLayer, loadImage } from '../../engine/gl/layer';
 import { PhotoSkin } from '../../engine/gl/skin';
+import { Hand } from '../../engine/hand';
 import { Bounds } from '../../engine/part';
 import { TAU, clamp, follow, smooth } from '../../engine/math';
 import { PressInput, SkinPress } from '../../engine/skinPress';
@@ -100,6 +101,10 @@ export interface PhotoDef {
   scale: number;
   ground: GroundKind;
   material: Material;
+  /** 烫：各区域的温度 0..1。手碰上会"呲呲"响、冒烟、慢慢烧焦 */
+  hot?: Record<string, number>;
+  /** 发光强度（烧红的铁）：着色器里的热浪扭动和亮度起伏 */
+  glow?: number;
   /** 个别区域的材质（例如花盆） */
   materialOf?: (zone: string) => Material | undefined;
   /** 有没有毛（没有毛就不做炸毛） */
@@ -185,6 +190,10 @@ export class PhotoPet implements Creature {
   private bleeding = { level: 0, pads: [] as number[], next: 0 };
   /** 滴在地面上的血（世界坐标） */
   private drips: { x: number; y: number; img: ImageBitmap | null; size: number; rot: number; age: number }[] = [];
+  /** 烟（世界坐标）；heatContact 为上一帧手贴着烫处的比例 */
+  private smoke: { x: number; y: number; vx: number; vy: number; r: number; age: number; life: number; a: number; dark: number }[] = [];
+  private smokeDebt = 0;
+  private heatContact = 0;
 
   constructor(
     protected fx: Fx,
@@ -227,6 +236,7 @@ export class PhotoPet implements Creature {
       sheen: this.coat.sheen ?? 0,
       settle: d.settle ?? 0.92,
       shadow: d.shadow ?? 1,
+      glow: d.glow ?? 0,
     });
     this.skin = skin;
     const n = skin.n;
@@ -289,6 +299,7 @@ export class PhotoPet implements Creature {
     this.bed = null;
     this.fx.hand.photo = null;
     this.fx.hand.shiver = 0;
+    this.fx.hand.resetBurn();
   }
 
   /** 世界坐标 → 图片像素（静止姿态）。 */
@@ -377,6 +388,8 @@ export class PhotoPet implements Creature {
     this.press.step(dt, this.contactInput(f));
     this.smearBlood(touching);
     this.drip(f);
+    this.heatStep(f, touching);
+    this.skin.time = this.t;
     this.pose();
     const c = this.contact;
     if (this.def.fur !== false) this.skin.stroke(dt, { ...f.touch, active: f.touch.active && c.on }, c.x, c.y, h.vx / this.k, h.vy / this.k, (46 * HAND_SIZE) / this.k);
@@ -487,6 +500,91 @@ export class PhotoPet implements Creature {
     void createImageBitmap(sp.canvas).then(bmp => (d.img = bmp));
     this.drips.push(d);
     if (this.drips.length > 150) this.drips.shift()?.img?.close();
+  }
+
+  /**
+   * 烫：手上各采样点按所在区域的温度慢慢烧焦（约 9 秒全黑），贴着烧红的地方冒烟，
+   * 刚碰上时"呲——"一声（持续的"呲呲"声由材质 hot 的摩擦声负责），手轻轻发抖。
+   */
+  private heatStep(f: Frame, touching: boolean): void {
+    const hot = this.def.hot,
+      hand = this.fx.hand,
+      dt = f.dt;
+    for (const p of this.smoke) {
+      p.age += dt;
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+      p.vx += (Math.random() - 0.5) * 60 * dt;
+      p.vy += (Math.random() - 0.5) * 60 * dt;
+    }
+    this.smoke = this.smoke.filter(p => p.age < p.life);
+    if (!hot || !hand.photo) return;
+    let sum = 0;
+    const spots: { x: number; y: number }[] = [];
+    if (touching) {
+      const press = 0.75 + 0.25 * clamp(f.hand.pressure);
+      Hand.burnPoints.forEach(([x, y], i) => {
+        const w = hand.photoPoint(x, y);
+        const q = this.toImage(w.x, w.y);
+        if (this.skin!.alphaAt(q.x, q.y) < 110) return;
+        const heat = hot[this.def.zone(q.x, q.y)] ?? 0;
+        if (heat <= 0) return;
+        hand.scorch(i, (heat * press * dt) / 9);
+        sum += heat;
+        spots.push(w);
+      });
+    }
+    const frac = sum / Hand.burnPoints.length;
+    const au = this.fx.au;
+    if (frac > 0.02 && this.heatContact <= 0.02 && au.ready) {
+      // 刚贴上："呲——"
+      noise(au, { filter: 'highpass', f: [[0, 2600], [0.5, 4200]], gain: 0.16 + 0.12 * Math.min(1, frac * 3), a: 0.004, h: 0.18, r: 0.45 });
+      noise(au, { kind: 'pink', filter: 'bandpass', f: [[0, 5200]], q: 1.2, gain: 0.08, a: 0.002, h: 0.1, r: 0.3 });
+    }
+    this.heatContact = frac;
+    if (frac > 0.02) hand.shiver = Math.max(hand.shiver, 0.15 + 0.2 * Math.min(1, frac * 3));
+    // 冒烟：接触越多、手动得越快，烟越多；手烧得越焦，烟越暗
+    const rate = 45 * Math.min(1, frac * 2.5) * (0.55 + 0.45 * Math.min(1, f.hand.speed / 600));
+    this.smokeDebt += rate * dt;
+    const dark = Math.min(1, hand.burnLevel * 1.6);
+    while (this.smokeDebt >= 1 && spots.length) {
+      this.smokeDebt -= 1;
+      const p = spots[Math.floor(Math.random() * spots.length)];
+      if (this.smoke.length < 110)
+        this.smoke.push({
+          x: p.x + rnd(-8, 8),
+          y: p.y + rnd(-8, 8),
+          vx: rnd(-25, 25) + 18,
+          vy: rnd(-25, 25) - 22,
+          r: rnd(14, 24),
+          age: 0,
+          life: rnd(1.4, 2.6),
+          a: rnd(0.65, 0.95),
+          dark: dark * rnd(0.6, 1),
+        });
+    }
+    if (!spots.length) this.smokeDebt = 0;
+  }
+
+  /** 烟画在手的上面（前景层）。 */
+  drawOver(g: CanvasRenderingContext2D): void {
+    if (!this.smoke.length) return;
+    const puff = smokePuffs();
+    if (!puff) return;
+    g.save();
+    for (const p of this.smoke) {
+      const t = p.age / p.life;
+      const R = p.r * (1 + 3.2 * t);
+      const a = p.a * Math.min(1, t * 8) * (1 - t) ** 1.4;
+      if (a < 0.005) continue;
+      g.globalAlpha = a * (1 - p.dark);
+      g.drawImage(puff.light, p.x - R, p.y - R, R * 2, R * 2);
+      if (p.dark > 0.02) {
+        g.globalAlpha = a * p.dark;
+        g.drawImage(puff.dark, p.x - R, p.y - R, R * 2, R * 2);
+      }
+    }
+    g.restore();
   }
 
   /** 由照片手的指腹位置算出接触斑（图片像素）。 */
@@ -680,4 +778,31 @@ export function photoSpecies(def: PhotoDef, make?: (fx: Fx, coat: Coat) => Creat
       return make ? make(fx, coat) : new PhotoPet(fx, def, coat);
     },
   };
+}
+
+/** 烟团贴图（浅灰、深灰各一张）：第一次用时生成，转成 ImageBitmap（小画布每帧画会走慢路径掉帧）。 */
+let puffs: { light: ImageBitmap; dark: ImageBitmap } | null = null;
+let puffsPending = false;
+function smokePuffs(): typeof puffs {
+  if (puffs || puffsPending) return puffs;
+  puffsPending = true;
+  const make = (rgb: string) => {
+    const c = document.createElement('canvas');
+    c.width = c.height = 96;
+    const g = c.getContext('2d')!;
+    // 几团错开的软圆叠起来，边缘不规则
+    for (let i = 0; i < 6; i++) {
+      const x = 48 + (Math.random() - 0.5) * 26,
+        y = 48 + (Math.random() - 0.5) * 26,
+        r = 22 + Math.random() * 16;
+      const gr = g.createRadialGradient(x, y, 0, x, y, r);
+      gr.addColorStop(0, `rgba(${rgb},0.85)`);
+      gr.addColorStop(1, `rgba(${rgb},0)`);
+      g.fillStyle = gr;
+      g.fillRect(0, 0, 96, 96);
+    }
+    return createImageBitmap(c);
+  };
+  void Promise.all([make('236,234,230'), make('92,86,80')]).then(([light, dark]) => (puffs = { light, dark }));
+  return null;
 }

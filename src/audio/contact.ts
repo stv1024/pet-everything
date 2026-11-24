@@ -77,6 +77,7 @@ export class ContactSound {
         spine: ['highpass', 0.7, 3000],
         scale: ['bandpass', 1.6, 1800],
         skin: ['lowpass', 0.7, 1800],
+        hot: ['highpass', 0.6, 3800],
         none: ['bandpass', 0.7, 1000],
       };
       const [type, q, cf] = map[material];
@@ -119,6 +120,12 @@ export class ContactSound {
         this.squeak.frequency.setTargetAtTime(480 + 900 * s + 120 * slip, t, 0.03);
         break;
       }
+      case 'hot':
+        // 皮肉贴上烧红的铁：不用动也一直"呲呲"响，动起来更响
+        rustle = contact ? 0.13 + 0.12 * s : 0;
+        freq = 4200 + 1800 * s;
+        crackle = contact ? 0.3 + 0.25 * s : 0;
+        break;
       default:
         break;
     }

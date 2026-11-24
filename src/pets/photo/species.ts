@@ -1,5 +1,5 @@
 import { PhotoDef, nearestOnLine, photoSpecies } from './photoPet';
-import { cactusSounds, catSounds, crocodileSounds, dogSounds, hedgehogSounds, orcaSounds, rabbitSounds, tigerSounds } from './voices';
+import { cactusSounds, catSounds, crocodileSounds, dogSounds, hedgehogSounds, ironSounds, orcaSounds, rabbitSounds, tigerSounds } from './voices';
 
 /**
  * 写实物种清单。坐标都是抠图后的图片像素（素材见 public/pets/<id>/）。
@@ -80,13 +80,19 @@ export const dog: PhotoDef = {
     nose: { x: 78, y: 185 },
     neck: { x: 330, y: 188 },
     spine: 190,
-    skull: [270, 380],
+    skull: [330, 440],
     head: { x: [240, 400], half: [110, 170] },
     chest: { x: 440, rx: 200, ry: 170 },
     ears: [
       { base: { x: 262, y: 95 }, c: { x: 245, y: 55 } },
       { base: { x: 255, y: 215 }, c: { x: 248, y: 245 } },
     ],
+    // 两只前爪平放在地上，基本不动；头比猫重，摸头时只轻微移动
+    fixed: [
+      { x: 85, y: 148, rx: 80, ry: 30 },
+      { x: 90, y: 268, rx: 85, ry: 32 },
+    ],
+    headFix: 0.8,
   },
   scale: 1.15,
   ground: 'rug',
@@ -383,4 +389,41 @@ export const cactus: PhotoDef = {
   icon: [140, 120, 660],
 };
 
-export const photoSpeciesList = [cat, dog, rabbit, hedgehog, tiger, crocodile, orca, cactus].map(d => photoSpecies(d));
+// ---------- 烧红的铁块（放在发红的电炉上） ----------
+
+const IX = 437,
+  IY = 490;
+
+export const iron: PhotoDef = {
+  id: 'iron',
+  name: '烧红铁块',
+  coats: [{ id: 'forge', name: '烧红铁块', swatch: ['#ff6a1a', '#2a2a2a'] }],
+  rig: {
+    nose: { x: IX, y: IY },
+    neck: { x: IX, y: IY },
+    spine: IY,
+    skull: [-20, -10],
+    head: { x: [-20, -10], half: [0, 1] },
+    chest: { x: IX, rx: 300, ry: 300 },
+  },
+  scale: 0.55,
+  ground: 'steel',
+  material: 'none',
+  materialOf: zone => (zone === 'iron' || zone === 'coil' || zone === 'ring' ? 'hot' : undefined),
+  fur: false,
+  give: 0.02,
+  breath: 0,
+  glow: 1,
+  // 手碰到的地方有多烫：铁块最烫，电炉丝次之，炉圈只是温热
+  hot: { iron: 1, coil: 0.75, ring: 0.3 },
+  zone: (x, y) => {
+    if (x > 150 && x < 715 && y > 330 && y < 630) return 'iron';
+    const d = Math.hypot(x - IX, y - IY);
+    return d < 300 ? 'coil' : d < 345 ? 'ring' : 'body';
+  },
+  temper: { prefs: {}, grain: 0 },
+  voice: ironSounds,
+  icon: [140, 190, 580],
+};
+
+export const photoSpeciesList = [cat, dog, rabbit, hedgehog, tiger, crocodile, orca, cactus, iron].map(d => photoSpecies(d));

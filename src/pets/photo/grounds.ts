@@ -6,13 +6,14 @@ import { View, visibleWorld } from '../types';
  * 写实背景：小尺寸可平铺照片（public/pets/<kind>.webp）在世界坐标里重复铺开，再加窗光明暗。
  * 水面在 GL 层里画（WaterPlane：两层错开、缓慢漂移的同一贴图），2D 背景只铺底色。
  */
-export type GroundKind = 'rug' | 'grass' | 'sand' | 'water';
+export type GroundKind = 'rug' | 'grass' | 'sand' | 'water' | 'steel';
 
 const SPEC: Record<GroundKind, { file: string; tile: number; light: [string, string] }> = {
   rug: { file: 'rug.webp', tile: 460, light: ['rgba(255,236,200,0.22)', 'rgba(60,35,15,0.28)'] },
   grass: { file: 'grass.webp', tile: 560, light: ['rgba(255,245,200,0.18)', 'rgba(10,30,5,0.3)'] },
   sand: { file: 'sand.webp', tile: 700, light: ['rgba(255,240,210,0.2)', 'rgba(60,40,20,0.25)'] },
   water: { file: 'water.webp', tile: 900, light: ['rgba(220,255,255,0.16)', 'rgba(0,25,40,0.35)'] },
+  steel: { file: 'steel.webp', tile: 520, light: ['rgba(255,170,110,0.14)', 'rgba(0,0,0,0.4)'] },
 };
 
 const base = import.meta.env.BASE_URL;

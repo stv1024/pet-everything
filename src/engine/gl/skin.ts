@@ -40,6 +40,8 @@ uniform float uMode;
 uniform float uShadowAlpha;
 uniform float uAlpha;
 uniform sampler2D uStain;
+uniform float uGlow;
+uniform float uTime;
 out vec4 frag;
 float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
 void main() {
@@ -58,8 +60,15 @@ void main() {
   vec2 cell = floor(vUV / uTexel / 3.0);
   vec2 jitter = vec2(hash(cell), hash(cell + 17.0)) * 2.0 - 1.0;
   vec2 uv = vUV - nap * uTexel * 4.0 + jitter * uTexel * 3.0 * against;
-  vec4 s = texture(uTex, uv);
   vec4 base = texture(uTex, vUV);
+  // 发光的物体（烧红的铁）：发红发亮的像素随热浪微微扭动、亮度轻轻起伏
+  float hot = 0.0;
+  if (uGlow > 0.0) {
+    vec3 sc = base.rgb / max(base.a, 0.001);
+    hot = smoothstep(0.15, 0.5, sc.r - sc.b) * smoothstep(0.45, 0.85, sc.r) * base.a;
+    uv += uGlow * hot * uTexel * 1.6 * vec2(sin(uTime * 7.0 + vUV.y * 95.0), cos(uTime * 6.0 + vUV.x * 83.0));
+  }
+  vec4 s = texture(uTex, uv);
   // 颜色取偏移处（去预乘），轮廓仍用原处 alpha，避免边缘跟着抖
   // 只在内部（两处都不透明）用偏移取样，边缘保持原样，避免除以小 alpha 放大误差
   float inner = smoothstep(0.75, 0.98, min(s.a, base.a));
@@ -81,6 +90,7 @@ void main() {
     vec3 blood = st.rgb * mix(1.0, detail, 0.7);
     col = mix(col, blood * c.a, st.a * smoothstep(0.3, 0.9, c.a));
   }
+  col *= 1.0 + uGlow * hot * (0.08 + 0.06 * sin(uTime * 2.3 + vUV.x * 9.0 + vUV.y * 7.0));
   frag = vec4(clamp(col, vec3(0.0), vec3(c.a)), c.a) * uAlpha;
 }`;
 
@@ -103,6 +113,8 @@ export interface SkinOptions {
   settle?: number;
   /** 影子浓度倍数 */
   shadow?: number;
+  /** 发光强度（烧红的铁）：热浪扭动 + 亮度起伏，0 为不发光 */
+  glow?: number;
 }
 
 export class PhotoSkin {
@@ -153,6 +165,9 @@ export class PhotoSkin {
   private stain: { canvas: HTMLCanvasElement; g: CanvasRenderingContext2D; tex: WebGLTexture; dirty: number[] | null } | null = null;
   private emptyTex: WebGLTexture;
   private shadow: number;
+  private glow: number;
+  /** 当前时间（秒），发光动画用，调用者写入 */
+  time = 0;
 
   constructor(o: SkinOptions) {
     const layer = GLLayer.get();
@@ -166,6 +181,7 @@ export class PhotoSkin {
     this.sheen = o.sheen ?? 0.14;
     this.settle = o.settle ?? 0.92;
     this.shadow = o.shadow ?? 1;
+    this.glow = o.glow ?? 0;
     const cell = o.cell ?? 14;
     this.cols = Math.ceil(this.w / cell);
     this.rows = Math.ceil(this.h / cell);
@@ -547,6 +563,8 @@ export class PhotoSkin {
     gl.uniform2f(u('uTexel'), 1 / this.w, 1 / this.h);
     gl.uniform1f(u('uSheen'), this.sheen);
     gl.uniform1f(u('uAlpha'), alpha);
+    gl.uniform1f(u('uGlow'), this.glow);
+    gl.uniform1f(u('uTime'), this.time % 1000);
     // 阴影（光从左上方来，影子落在右下）
     gl.uniform1f(u('uMode'), 1);
     gl.uniform1f(u('uShadowAlpha'), 0.42 * this.shadow);

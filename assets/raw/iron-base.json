@@ -1,0 +1,5 @@
+{
+  "prompt": "Photorealistic overhead photograph, camera pointing straight down (true top-down view, 90 degrees), of a square single-burner electric hot plate with a black metal body, centred in the frame. Its round spiral heating coil is switched on and glows bright cherry red. Resting on the middle of the coil is a thick rectangular block of red-hot forged iron, about the size of a brick, glowing intensely orange-red with a yellow-white hot centre, darker red edges and a few flakes of dark grey scale on the surface — unmistakably a red-hot iron block fresh from a forge. Faint orange glow on the hot plate around the block.\nThe hot plate fills about 80 percent of the image width.\nBackground: perfectly flat, uniform, solid pure chroma-key green (#00FF00) with no texture, no shadow, no gradient, no props.\nDim neutral studio light from the top-left so that the glowing metal stands out, sharp focus everywhere, no smoke, no motion blur, no text, no watermark.",
+  "refs": [],
+  "model": "tencent-vod/gpt-image-2.6"
+}

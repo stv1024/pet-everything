@@ -353,3 +353,27 @@ export const orcaSounds: PetVoice = {
 // ---------- 仙人球（不出声；摩擦声由材质决定） ----------
 
 export const cactusSounds: PetVoice = {};
+
+// ---------- 烧红的铁块（电炉的嗡嗡声和金属受热的嗒嗒声；"呲呲"由材质 hot 的摩擦声负责） ----------
+
+export const ironSounds: PetVoice = {
+  bed: au => {
+    let next = 0,
+      pt = 1,
+      amp = 0;
+    const buf = loop(au, 4, (t, rate) => {
+      // 100 Hz 电炉嗡声（4 秒里整数个周期，循环处相位连续）
+      const hum = 0.25 * Math.sin(2 * Math.PI * 100 * t) + 0.1 * Math.sin(2 * Math.PI * 200 * t + 0.6);
+      if (t >= next) {
+        next = t + rnd(0.25, 1.4);
+        pt = 0;
+        amp = rnd(0.3, 1);
+      }
+      pt += 1 / rate;
+      const tick = amp * Math.exp(-pt / 0.0012) * (Math.random() * 2 - 1);
+      return hum * 0.35 + tick;
+    });
+    return new Bed(au, buf);
+  },
+  bedLevel: () => 0.18,
+};

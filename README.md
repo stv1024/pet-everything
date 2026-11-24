@@ -1,6 +1,6 @@
 # Pet Everything
 
-A little web toy for petting photorealistic animals, seen from above. Put your hand on one and stroke it: the fur gets dragged by your palm, pressed down, bunched up between your fingers, and ruffled when you go against the grain. The animals purr, pant and grumble — and the hedgehog and the cactus will make your hand bleed.
+A little web toy for petting photorealistic animals, seen from above. Put your hand on one and stroke it: the fur gets dragged by your palm, pressed down, bunched up between your fingers, and ruffled when you go against the grain. The animals purr, pant and grumble — the hedgehog and the cactus will make your hand bleed, and the red-hot iron will burn it.
 
 **Play it online: <https://pet-everything.stv1024.asia>**
 
@@ -24,9 +24,9 @@ On a phone, use your finger.
 
 ## Animals and objects
 
-Cat (6 coats), Shiba Inu (4), Holland Lop rabbit (5), hedgehog (3), tiger (3), crocodile, orca, and a golden barrel cactus (plain or in bloom).
+Cat (6 coats), Shiba Inu (4), Holland Lop rabbit (5), hedgehog (3), tiger (3), crocodile, orca, a golden barrel cactus (plain or in bloom), and a red-hot iron block on a glowing hot plate.
 
-Each one has its own likes, sounds and feel. The tiger and the orca are much bigger than your hand; the crocodile and the cactus are hard and barely give; the hedgehog is fine if you stroke along its spines, but going against them hurts.
+Each one has its own likes, sounds and feel. The tiger and the orca are much bigger than your hand; the crocodile and the cactus are hard and barely give; the hedgehog is fine if you stroke along its spines, but going against them hurts. The iron sizzles and smokes under your hand, which slowly gets burnt — red, then blistered, then charred.
 
 ## How it works
 
@@ -34,6 +34,7 @@ Each one has its own likes, sounds and feel. The tiger and the orca are much big
 - **Touch**: under the palm there is an elliptical contact patch. The skin is dragged along with the hand and springs back when the hand stops; it sinks inside the patch, bulges around it and bunches up in front of a moving hand, with shading from a light at the top left (`src/engine/skinPress.ts`).
 - **Fur**: the fur direction is estimated from the photo. Stroking against it lifts the fur tips, which look brighter and messier for about a second (`src/engine/gl/skin.ts`).
 - **Blood**: when a spine pricks the hand, drops land on the surface under the fingers, bloody fingers leave fading smears, and a bleeding hand drips onto the floor.
+- **Burns**: 28 sample points on the hand (fingers, thumb, palm) heat up where they touch something hot. A low-resolution burn map is built from them, colored from red to charred black and multiplied onto the hand photo, with blisters and ash on top.
 - **Sound**: everything is synthesized live with Web Audio — no audio files. The purr is an offline-rendered loop, calls use formant synthesis, and the rubbing noise changes with the material and the hand speed.
 - **Stack**: Vite + TypeScript, no UI framework. Three stacked canvases: background (2D), animal (WebGL2), hand and particles (2D).
 

@@ -2,7 +2,8 @@
  * 音频引擎：全部音效实时合成，不加载音频文件。
  * 浏览器要求用户手势后才能出声，所以 AudioContext 在第一次点击/按键时创建。
  */
-export type Material = 'fur' | 'short' | 'spine' | 'scale' | 'skin' | 'none';
+/** hot：烧红的东西，手一碰就"呲呲"响（不用动） */
+export type Material = 'fur' | 'short' | 'spine' | 'scale' | 'skin' | 'hot' | 'none';
 
 const MUTE_KEY = 'pet-everything-muted';
 

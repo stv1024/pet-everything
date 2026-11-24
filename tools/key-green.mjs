@@ -3,6 +3,7 @@
 // 收边（choke）把半透明边缘往里收，适合皮肤这类边缘有绿幕反光的素材。
 // 环境变量 CROP=x,y,w,h 时用固定裁剪框，让同一姿势的多张图坐标完全一致。
 // 环境变量 KEY=magenta 时抠品红幕（#FF00FF），用于本身是绿色的主体（鳄鱼、仙人球）。
+// KEY=green-max：绿色要比红、蓝都高才算背景，用于有黄色、白热部分的主体（烧红的铁块）；默认模式会把黄色当成偏绿。
 import { PNG } from 'pngjs';
 import { readFileSync, writeFileSync } from 'node:fs';
 
@@ -12,8 +13,9 @@ const choke = Number(chokeArg ?? 0);
 const src = PNG.sync.read(readFileSync(input));
 const { width: w, height: h, data } = src;
 const magenta = process.env.KEY === 'magenta';
+const strict = process.env.KEY === 'green-max';
 // 背景色优势：背景约 255，主体为负
-const keyness = magenta ? (r, g, b) => Math.min(r, b) - g : (r, g, b) => g - (r + b) / 2;
+const keyness = magenta ? (r, g, b) => Math.min(r, b) - g : strict ? (r, g, b) => g - Math.max(r, b) : (r, g, b) => g - (r + b) / 2;
 const a = new Float32Array(w * h);
 for (let i = 0; i < w * h; i++) {
   const r = data[i * 4], g = data[i * 4 + 1], b = data[i * 4 + 2];
@@ -51,7 +53,7 @@ for (let y = 0; y < oh; y++)
       const over = Math.min(r, b) - g - 8;
       if (over > 0) { r -= over; b -= over; }
     } else {
-      const cap = (r + b) / 2 + 8;
+      const cap = (strict ? Math.max(r, b) : (r + b) / 2) + 8;
       if (g > cap) g = cap;
     }
     col[di * 3] = r; col[di * 3 + 1] = g; col[di * 3 + 2] = b;

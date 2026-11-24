@@ -13,6 +13,23 @@ interface Finger {
   lag: Spring;
 }
 
+/**
+ * 照片手（手背朝上的右手，465×1008）上会被烫到的采样点：[x, y, 半径]（手图像素）。
+ * 四根手指各 4 个、拇指 3 个、手掌 3×3。
+ */
+const BURN_POINTS: [number, number, number][] = [
+  ...[
+    [208, 60],
+    [270, 30],
+    [333, 65],
+    [398, 175],
+  ].flatMap(([x, y]) => [0, 1, 2, 3].map(j => [x - j * 6, y + 18 + j * 52, 30] as [number, number, number])),
+  [45, 340, 32],
+  [80, 395, 34],
+  [115, 440, 36],
+  ...[0, 1, 2].flatMap(r => [0, 1, 2].map(c => [190 + c * 95, 300 + r * 80, 52] as [number, number, number])),
+];
+
 const SKIN = '#f6c7a4';
 const SKIN_DARK = '#e6a582';
 const LINE = '#a8684c';
@@ -256,6 +273,157 @@ export class Hand {
   /** 最近一次绘制时手的朝向（0 = 指尖朝上），给接触模型用 */
   angle = 0;
 
+  /** 烫伤：BURN_POINTS 上各点的烧焦程度 0..1（0 正常，0.3 发红，0.5 起泡，0.8 以上焦黑） */
+  readonly burn = new Float32Array(BURN_POINTS.length);
+  private burnSeed = BURN_POINTS.map(() => Math.random());
+  private burnVer = 0;
+  private burned: { canvas: HTMLCanvasElement; ver: number; key: string; at: number } | null = null;
+  private burnField: HTMLCanvasElement | null = null;
+  private burnNoise: Float32Array | null = null;
+
+  /** 手图像素坐标里会被烫到的采样点（手指、拇指、手掌）：[x, y, 半径]。 */
+  static readonly burnPoints = BURN_POINTS;
+
+  /** 第 i 个采样点烫伤加深 amount。 */
+  scorch(i: number, amount: number): void {
+    const v = Math.min(1, this.burn[i] + amount);
+    if (v - this.burn[i] > 1e-4) {
+      this.burn[i] = v;
+      this.burnVer++;
+    }
+  }
+
+  /** 平均烧焦程度（给烟的颜色用）。 */
+  get burnLevel(): number {
+    let s = 0;
+    for (const b of this.burn) s += b;
+    return s / this.burn.length;
+  }
+
+  resetBurn(): void {
+    this.burn.fill(0);
+    this.burnSeed = BURN_POINTS.map(() => Math.random());
+    this.burnVer = 0;
+    this.burned = null;
+    this.burnNoise = null;
+  }
+
+  /**
+   * 带烫伤的手臂贴图。做法：
+   * 1. 把各采样点的程度画成一张低分辨率的"灼伤图"（取最大值、再加噪声），得到连续、边缘不规则的伤处；
+   * 2. 按程度上色（发红 → 褐 → 焦黑），用 multiply 叠到手上，皮肤纹理会透出来；
+   * 3. 起泡的地方加几个半透明水泡，焦黑处加灰白碳屑和裂纹；最后用原贴图的 alpha 裁掉多余部分。
+   * 最多每 80 毫秒重画一次。
+   */
+  private burnedArm(sp: NonNullable<Hand['sprite']>): HTMLCanvasElement {
+    const now = performance.now();
+    const b = this.burned;
+    if (b && b.key === sp.key && (b.ver === this.burnVer || now - b.at < 80)) return b.canvas;
+    const c = b && b.key === sp.key ? b.canvas : document.createElement('canvas');
+    c.width = sp.arm.width;
+    c.height = sp.arm.height;
+    const g = c.getContext('2d')!;
+    g.drawImage(sp.arm, 0, 0);
+    const k = sp.k;
+    // 1. 灼伤图（手图的 1/6）
+    const S = 6,
+      FW = Math.ceil(465 / S),
+      FH = Math.ceil(1008 / S);
+    const f = (this.burnField ??= document.createElement('canvas'));
+    f.width = FW;
+    f.height = FH;
+    const fg = f.getContext('2d', { willReadFrequently: true })!;
+    fg.globalCompositeOperation = 'lighten';
+    BURN_POINTS.forEach(([x, y, r], i) => {
+      const L = this.burn[i];
+      if (L < 0.01) return;
+      const R = (r * 1.7) / S;
+      const gr = fg.createRadialGradient(x / S, y / S, 0, x / S, y / S, R);
+      const v = Math.round(L * 255);
+      gr.addColorStop(0, `rgb(${v},${v},${v})`);
+      gr.addColorStop(0.6, `rgb(${v},${v},${v})`);
+      gr.addColorStop(1, 'rgb(0,0,0)');
+      fg.fillStyle = gr;
+      fg.fillRect(0, 0, FW, FH);
+    });
+    const img = fg.getImageData(0, 0, FW, FH);
+    const noise = (this.burnNoise ??= Float32Array.from({ length: FW * FH }, () => Math.random()));
+    const red = [255, 150, 135],
+      brown = [150, 88, 55],
+      black = [38, 28, 24];
+    const lerp = (a: number[], bb: number[], t: number, j: number) => a[j] + (bb[j] - a[j]) * t;
+    const level = new Float32Array(FW * FH);
+    for (let p = 0; p < FW * FH; p++) {
+      // 噪声让边缘和焦黑处斑驳（相邻格子平均一下，噪声不要太碎）
+      const nx = p % FW,
+        ny = (p / FW) | 0;
+      const n = (noise[p] + noise[ny * FW + Math.min(FW - 1, nx + 1)] + noise[Math.min(FH - 1, ny + 1) * FW + nx]) / 3;
+      // 高位压平（采样点之间不留浅色缝）：原值 0.8 以上就算满
+      const raw = Math.min(1, (img.data[p * 4] / 255) * 1.25);
+      const L = Math.min(1, Math.max(0, raw * (0.82 + 0.3 * n) - 0.03));
+      level[p] = L;
+      for (let j = 0; j < 3; j++)
+        img.data[p * 4 + j] = L < 0.45 ? lerp([255, 255, 255], red, L / 0.45, j) : L < 0.75 ? lerp(red, brown, (L - 0.45) / 0.3, j) : lerp(brown, black, (L - 0.75) / 0.25, j);
+      img.data[p * 4 + 3] = 255;
+    }
+    fg.globalCompositeOperation = 'source-over';
+    fg.putImageData(img, 0, 0);
+    // 2. 上色
+    g.globalCompositeOperation = 'multiply';
+    g.imageSmoothingQuality = 'high';
+    g.drawImage(f, 0, 0, FW * S * k, FH * S * k);
+    // 3. 水泡和碳屑：在灼伤图上找对应程度的格子
+    const rand = (seed: number, n: number) => {
+      const x = Math.sin(seed * 9301 + n * 49297) * 233280;
+      return x - Math.floor(x);
+    };
+    g.globalCompositeOperation = 'source-atop';
+    const seed = this.burnSeed[0];
+    for (let j = 0; j < 400; j++) {
+      const p = Math.floor(rand(seed, j) * FW * FH);
+      const L = level[p];
+      const x = ((p % FW) + rand(seed, j + 999)) * S * k,
+        y = (((p / FW) | 0) + rand(seed, j + 1999)) * S * k;
+      if (L > 0.42 && L < 0.78 && rand(seed, j + 2999) < 0.18) {
+        const br = S * k * (0.8 + 1.4 * rand(seed, j + 3999));
+        g.fillStyle = 'rgba(236,205,150,0.42)';
+        g.beginPath();
+        g.ellipse(x, y, br, br * 0.8, rand(seed, j + 4999) * 3, 0, Math.PI * 2);
+        g.fill();
+        g.fillStyle = 'rgba(255,252,235,0.55)';
+        g.beginPath();
+        g.arc(x - br * 0.3, y - br * 0.3, br * 0.22, 0, Math.PI * 2);
+        g.fill();
+      } else if (L > 0.8) {
+        const t = (L - 0.8) / 0.2;
+        g.fillStyle = `rgba(165,158,150,${(0.45 * t).toFixed(2)})`;
+        g.beginPath();
+        g.arc(x, y, S * k * 0.3 * (0.5 + rand(seed, j + 5999)), 0, Math.PI * 2);
+        g.fill();
+        if (rand(seed, j + 6999) < 0.12) {
+          g.strokeStyle = `rgba(12,6,4,${(0.55 * t).toFixed(2)})`;
+          g.lineWidth = Math.max(0.6, S * k * 0.15);
+          let px = x,
+            py = y;
+          g.beginPath();
+          g.moveTo(px, py);
+          for (let q = 0; q < 4; q++) {
+            px += (rand(seed, j * 7 + q + 7999) - 0.5) * S * k * 3;
+            py += (rand(seed, j * 7 + q + 8999) - 0.5) * S * k * 3;
+            g.lineTo(px, py);
+          }
+          g.stroke();
+        }
+      }
+    }
+    // multiply 会在透明处留下颜色：用原贴图的 alpha 裁掉
+    g.globalCompositeOperation = 'destination-in';
+    g.drawImage(sp.arm, 0, 0);
+    g.globalCompositeOperation = 'source-over';
+    this.burned = { canvas: c, ver: this.burnVer, key: sp.key, at: now };
+    return c;
+  }
+
   /** 手掌受力中心（世界坐标）：照片手在掌心偏指根处，卡通手就是原点。 */
   contactPoint(): { x: number; y: number } {
     return this.photo ? this.photoPoint(277, 265) : { x: this.x, y: this.y };
@@ -361,7 +529,7 @@ export class Hand {
     g.rotate(devAng);
     g.transform(1, 0, lag * 0.35, 1, 0, 0);
     g.scale(s, s);
-    g.drawImage(sp.arm, -ax, -ay);
+    g.drawImage(this.burnVer ? this.burnedArm(sp) : sp.arm, -ax, -ay);
     g.restore();
   }
 }

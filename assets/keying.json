@@ -1,5 +1,5 @@
 {
-  "说明": "抠图清单：node tools/key-all.mjs [名字过滤]。raw 在 assets/raw/，out 在 public/pets/。同一物种的毛色共用 crop，坐标才一致。key=magenta 为品红幕。",
+  "说明": "抠图清单：node tools/key-all.mjs [名字过滤]。raw 在 assets/raw/，out 在 public/pets/。同一物种的毛色共用 crop，坐标才一致。key=magenta 为品红幕；key=green-max 为严格绿幕（主体有黄色、白热部分时用）。",
   "groups": [
     { "crop": "4,268,1020,526", "items": { "cat2-orange": "cat/orange", "cat2-black": "cat/black", "cat2-calico": "cat/calico", "cat2-tuxedo": "cat/tuxedo", "cat2-white": "cat/white", "cat2-gray": "cat/gray" } },
     { "pad": 8, "choke": 0.45, "items": { "hand-open": "hand-open" } },
@@ -9,6 +9,7 @@
     { "crop": "12,328,996,426", "items": { "tiger-base": "tiger/bengal", "tiger-coat-white": "tiger/white", "tiger-coat-golden": "tiger/golden" } },
     { "crop": "5,335,1013,361", "key": "magenta", "items": { "crocodile-base": "crocodile/nile" } },
     { "crop": "5,224,1019,583", "items": { "orca-base": "orca/wild" } },
-    { "crop": "30,16,946,991", "key": "magenta", "items": { "cactus-base": "cactus/golden", "cactus-coat-flower": "cactus/flower" } }
+    { "crop": "30,16,946,991", "key": "magenta", "items": { "cactus-base": "cactus/golden", "cactus-coat-flower": "cactus/flower" } },
+    { "crop": "75,0,873,1024", "key": "green-max", "items": { "iron-base": "iron/forge" } }
   ]
 }
